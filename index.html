@@ -72,8 +72,12 @@
   }
   .btn-primary { background: var(--accent); color: #002d15; }
   .btn-primary:active { background: var(--accent-dim); }
+  .btn-primary.dist-active { background: var(--warn); color: #2d0000; }
+  .btn-primary.dist-active:active { background: #d33; }
+  .app-author { position: fixed; bottom: 4px; right: 8px; font-size: 9px; color: rgba(255,255,255,0.12); pointer-events: none; user-select: none; letter-spacing: 0.3px; z-index: 1; }
   .btn-secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
   .btn-secondary:active { background: #262626; }
+  .btn-secondary.btn-flash { border: 2px solid #00e5ff; box-shadow: 0 0 0 2px rgba(0,229,255,0.35); transition: border-color 0.15s ease, box-shadow 0.15s ease; }
   .btn-danger { background: var(--warn); color: #2d0000; }
   .btn-row { display: flex; gap: 10px; margin-top: 10px; }
   .btn-row button { flex: 1; }
@@ -226,6 +230,7 @@
   </div>
   <div id="mapContainer"></div>
 </div>
+<div class="app-author">© Vaguimel</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
@@ -333,6 +338,7 @@
     pedoOverThreshold = false;
     window.addEventListener("devicemotion", handleMotion);
     el.pedoToggleBtn.textContent = "Detener podómetro";
+    el.pedoToggleBtn.classList.add("dist-active");
     el.pedoBadge.textContent = "en directo";
     el.pedoBadge.classList.add("live-purple");
   }
@@ -341,6 +347,7 @@
     pedoActive = false;
     window.removeEventListener("devicemotion", handleMotion);
     el.pedoToggleBtn.textContent = "Activar podómetro";
+    el.pedoToggleBtn.classList.remove("dist-active");
     el.pedoBadge.textContent = "inactivo";
     el.pedoBadge.classList.remove("live-purple");
     saveTrip();
@@ -832,16 +839,18 @@
       if (!data) return;
 
       totalDistanceM = data.totalDistanceM || 0;
-      el.totalDistance.textContent = formatMeters(totalDistanceM);
+      el.totalDistance.textContent = formatMetersDist(totalDistanceM);
       distanceActive = !!data.distanceActive;
       el.dist1ToggleBtn.textContent = distanceActive ? "Detener" : "Activar";
+      el.dist1ToggleBtn.classList.toggle("dist-active", distanceActive);
       el.dist1Badge.textContent = distanceActive ? "en directo" : "inactivo";
       el.dist1Badge.classList.toggle("live", distanceActive);
 
       totalDistanceM2 = data.totalDistanceM2 || 0;
-      el.totalDistance2.textContent = formatMeters(totalDistanceM2);
+      el.totalDistance2.textContent = formatMetersDist(totalDistanceM2);
       distanceActive2 = !!data.distanceActive2;
       el.dist2ToggleBtn.textContent = distanceActive2 ? "Detener" : "Activar";
+      el.dist2ToggleBtn.classList.toggle("dist-active", distanceActive2);
       el.dist2Badge.textContent = distanceActive2 ? "en directo" : "inactivo";
       el.dist2Badge.classList.toggle("live", distanceActive2);
 
@@ -896,6 +905,13 @@
 
   function formatMeters(m) {
     if (m >= 1000) return (m / 1000).toFixed(2) + " km";
+    return Math.round(m) + " m";
+  }
+
+  // Igual que formatMeters, pero con 3 decimales en km para Distancia 1 y
+  // Distancia 2, dando una medición más exacta en esos dos contadores.
+  function formatMetersDist(m) {
+    if (m >= 1000) return (m / 1000).toFixed(3) + " km";
     return Math.round(m) + " m";
   }
 
@@ -1035,7 +1051,7 @@
       const upd1 = updateAnchoredDistance(distanceAnchor, totalDistanceM, latitude, longitude, accuracy);
       distanceAnchor = upd1.anchor;
       totalDistanceM = upd1.total;
-      el.totalDistance.textContent = formatMeters(totalDistanceM);
+      el.totalDistance.textContent = formatMetersDist(totalDistanceM);
       el.dist1PauseNote.style.display = signalPoor ? "block" : "none";
     }
 
@@ -1044,7 +1060,7 @@
       const upd2 = updateAnchoredDistance(distanceAnchor2, totalDistanceM2, latitude, longitude, accuracy);
       distanceAnchor2 = upd2.anchor;
       totalDistanceM2 = upd2.total;
-      el.totalDistance2.textContent = formatMeters(totalDistanceM2);
+      el.totalDistance2.textContent = formatMetersDist(totalDistanceM2);
       el.dist2PauseNote.style.display = signalPoor ? "block" : "none";
     }
 
@@ -1086,11 +1102,19 @@
   }
 
   // ---------- Botones ----------
+  // Muestra brevemente un borde de color en un botón para confirmar que se
+  // ha pulsado (útil en móvil, donde el estado :active apenas se aprecia).
+  function flashButton(btn) {
+    btn.classList.add("btn-flash");
+    setTimeout(function () { btn.classList.remove("btn-flash"); }, 500);
+  }
+
   el.resetTotalBtn.addEventListener("click", function () {
     totalDistanceM = 0;
     distanceAnchor = lastPos ? { lat: lastPos.lat, lon: lastPos.lon, alt: lastPos.alt } : null;
     el.totalDistance.textContent = "0 m";
     el.dist1PauseNote.style.display = "none";
+    flashButton(el.resetTotalBtn);
     saveTrip();
   });
 
@@ -1099,6 +1123,7 @@
     distanceAnchor2 = lastPos ? { lat: lastPos.lat, lon: lastPos.lon, alt: lastPos.alt } : null;
     el.totalDistance2.textContent = "0 m";
     el.dist2PauseNote.style.display = "none";
+    flashButton(el.resetTotal2Btn);
     saveTrip();
   });
 
@@ -1112,6 +1137,7 @@
       el.dist1PauseNote.style.display = "none";
     }
     el.dist1ToggleBtn.textContent = distanceActive ? "Detener" : "Activar";
+    el.dist1ToggleBtn.classList.toggle("dist-active", distanceActive);
     el.dist1Badge.textContent = distanceActive ? "en directo" : "inactivo";
     el.dist1Badge.classList.toggle("live", distanceActive);
     saveTrip();
@@ -1125,6 +1151,7 @@
       el.dist2PauseNote.style.display = "none";
     }
     el.dist2ToggleBtn.textContent = distanceActive2 ? "Detener" : "Activar";
+    el.dist2ToggleBtn.classList.toggle("dist-active", distanceActive2);
     el.dist2Badge.textContent = distanceActive2 ? "en directo" : "inactivo";
     el.dist2Badge.classList.toggle("live", distanceActive2);
     saveTrip();
@@ -1151,6 +1178,7 @@
     pedoDistanceM = 0;
     el.pedoSteps.textContent = "0";
     el.pedoDistance.textContent = "0 m";
+    flashButton(el.pedoResetBtn);
     saveTrip();
   });
 

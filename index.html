@@ -74,7 +74,7 @@
   .btn-primary:active { background: var(--accent-dim); }
   .btn-primary.dist-active { background: var(--warn); color: #2d0000; }
   .btn-primary.dist-active:active { background: #d33; }
-  .app-author { position: fixed; bottom: 4px; right: 8px; font-size: 9px; color: rgba(255,255,255,0.12); pointer-events: none; user-select: none; letter-spacing: 0.3px; z-index: 1; }
+  .app-author { position: fixed; bottom: 4px; left: 0; right: 0; text-align: center; font-size: 9px; color: rgba(255,255,255,0.12); pointer-events: none; user-select: none; letter-spacing: 0.3px; z-index: 1; }
   .btn-secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
   .btn-secondary:active { background: #262626; }
   .btn-secondary.btn-flash { border: 2px solid #00e5ff; box-shadow: 0 0 0 2px rgba(0,229,255,0.35); transition: border-color 0.15s ease, box-shadow 0.15s ease; }
@@ -413,7 +413,7 @@
     }
     const utm = latLonToUTM(lastPos.lat, lastPos.lon);
     const labelInput = document.getElementById("pointLabelInput");
-    const label = labelInput.value.trim() || ("Punto " + (savedPoints.length + 1));
+    const label = labelInput.value.trim() || ("Punto " + (savedPoints.length + 1) + " Inventario");
 
     savedPoints.push({
       id: Date.now(),
@@ -424,7 +424,6 @@
       utmEasting: Math.round(utm.easting),
       utmNorthing: Math.round(utm.northing),
       alt: (lastPos.alt != null && !isNaN(lastPos.alt)) ? Math.round(lastPos.alt) : null,
-      accuracy: (lastPos.accuracy != null && !isNaN(lastPos.accuracy)) ? Math.round(lastPos.accuracy) : null,
       t: Date.now()
     });
 
@@ -556,7 +555,6 @@
       const time = new Date(p.t).toLocaleTimeString();
       let metaExtra = "";
       if (p.alt != null) metaExtra += " · Alt " + p.alt + " m";
-      if (p.accuracy != null) metaExtra += " · ±" + p.accuracy + " m";
       const gmapsUrl = buildGoogleMapsUrl(p.lat, p.lon);
       html +=
         '<div class="point-item">' +
@@ -596,7 +594,7 @@
       alert("No hay puntos guardados para exportar.");
       return;
     }
-    let csv = "Etiqueta,Latitud,Longitud,Zona UTM,Easting,Northing,Altitud (m),Precision (m),Fecha\n";
+    let csv = "Etiqueta,Latitud,Longitud,Zona UTM,Easting,Northing,Altitud (m),Fecha\n";
     savedPoints.forEach(function (p) {
       const row = [
         '"' + p.label.replace(/"/g, '""') + '"',
@@ -606,13 +604,12 @@
         p.utmEasting,
         p.utmNorthing,
         p.alt != null ? p.alt : "",
-        p.accuracy != null ? p.accuracy : "",
         new Date(p.t).toLocaleString()
       ];
       csv += row.join(",") + "\n";
     });
 
-    downloadBlob(csv, "text/csv;charset=utf-8;", "puntos_odometro.csv");
+    downloadBlob(csv, "text/csv;charset=utf-8;", "puntos_inventario.csv");
   }
 
   // ---------- Descarga genérica de un Blob ----------
@@ -644,12 +641,11 @@
       '<?xml version="1.0" encoding="UTF-8"?>\n' +
       '<kml xmlns="http://www.opengis.net/kml/2.2">\n' +
       '<Document>\n' +
-      '<name>Puntos Odómetro GPS</name>\n';
+      '<name>Puntos Inventario GPS COEX</name>\n';
 
     savedPoints.forEach(function (p) {
       let desc = p.utmZone + " " + p.utmEasting + "E " + p.utmNorthing + "N";
       if (p.alt != null) desc += " · Alt " + p.alt + " m";
-      if (p.accuracy != null) desc += " · Precisión ±" + p.accuracy + " m";
       desc += " — " + new Date(p.t).toLocaleString();
       const altStr = p.alt != null ? p.alt : 0;
       kml +=
@@ -661,7 +657,7 @@
     });
 
     kml += '</Document>\n</kml>';
-    downloadBlob(kml, "application/vnd.google-earth.kml+xml;charset=utf-8;", "puntos_odometro.kml");
+    downloadBlob(kml, "application/vnd.google-earth.kml+xml;charset=utf-8;", "puntos_inventario.kml");
   }
 
   // ---------- Exportar GPX ----------
@@ -676,7 +672,6 @@
 
     savedPoints.forEach(function (p) {
       let desc = p.utmZone + " " + p.utmEasting + "E " + p.utmNorthing + "N";
-      if (p.accuracy != null) desc += " · Precisión ±" + p.accuracy + " m";
       const isoTime = new Date(p.t).toISOString();
       gpx +=
         '<wpt lat="' + p.lat.toFixed(6) + '" lon="' + p.lon.toFixed(6) + '">\n' +
@@ -688,7 +683,7 @@
     });
 
     gpx += '</gpx>';
-    downloadBlob(gpx, "application/gpx+xml;charset=utf-8;", "puntos_odometro.gpx");
+    downloadBlob(gpx, "application/gpx+xml;charset=utf-8;", "puntos_inventario.gpx");
   }
 
   // ---------- Calcular área de un polígono formado por los puntos guardados ----------
@@ -910,8 +905,9 @@
 
   // Igual que formatMeters, pero con 3 decimales en km para Distancia 1 y
   // Distancia 2, dando una medición más exacta en esos dos contadores.
+  // Usa coma como separador decimal (formato español: 1,024 km).
   function formatMetersDist(m) {
-    if (m >= 1000) return (m / 1000).toFixed(3) + " km";
+    if (m >= 1000) return (m / 1000).toFixed(3).replace(".", ",") + " km";
     return Math.round(m) + " m";
   }
 

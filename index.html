@@ -884,9 +884,6 @@
   // Usa la distancia horizontal (Haversine) por tramos, igual que el
   // cuentakilómetros de un vehículo — sin desnivel, para máxima fluidez.
   function updateAnchoredDistance(anchor, total, lat, lon, accuracy) {
-    if (accuracy != null && accuracy > MIN_ACCURACY_FOR_DISTANCE) {
-      return { anchor: anchor, total: total };
-    }
     if (anchor == null) {
       return { anchor: { lat: lat, lon: lon }, total: total };
     }
@@ -1048,7 +1045,6 @@
       distanceAnchor = upd1.anchor;
       totalDistanceM = upd1.total;
       el.totalDistance.textContent = formatMetersDist(totalDistanceM);
-      el.dist1PauseNote.style.display = signalPoor ? "block" : "none";
     }
 
     // Distancia Viajada 2 (contador 2, totalmente independiente) — solo acumula mientras está activado
@@ -1057,7 +1053,6 @@
       distanceAnchor2 = upd2.anchor;
       totalDistanceM2 = upd2.total;
       el.totalDistance2.textContent = formatMetersDist(totalDistanceM2);
-      el.dist2PauseNote.style.display = signalPoor ? "block" : "none";
     }
 
     lastPos = { lat: latitude, lon: longitude, alt: hasAltitude ? altitude : null, accuracy: accuracy, t: now };

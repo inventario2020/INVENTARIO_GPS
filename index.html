@@ -66,6 +66,7 @@
   .btn-primary.dist-active{background:var(--red);color:#2d0000}
   .btn-secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
   .btn-secondary:active{background:#22324f}
+  #wakeLockBtn{font-size:16px;padding:16px;min-height:56px;letter-spacing:.5px;margin-bottom:10px}
   .btn-yellow{background:var(--yellow);color:#2d2400}
   .btn-yellow.dist-active{background:var(--red);color:#2d0000}
   .btn-yellow.dist-active:active{background:#d63b4a}
@@ -80,8 +81,8 @@
   .dist-card.d2:before{background:var(--yellow)}
   .dist-title{font-size:13px;text-transform:uppercase;letter-spacing:.9px;color:var(--dim);
     display:flex;align-items:center;justify-content:center;gap:6px}
-  .dist-value{font-size:clamp(32px,10vw,48px);font-weight:900;line-height:1.1;margin:12px 0 4px;
-    font-variant-numeric:tabular-nums;color:var(--cyan)}
+  .dist-value{font-size:64px;font-weight:800;line-height:1.05;margin:12px 0 4px;
+    font-variant-numeric:tabular-nums;color:var(--cyan);letter-spacing:-1px}
   .d2 .dist-value{color:var(--yellow)}
   .pause-note{font-size:11px;color:var(--red);font-weight:700;margin-bottom:6px}
   .badge{display:inline-block;font-size:10px;padding:3px 8px;border-radius:999px;
@@ -136,7 +137,6 @@
 
   @media (max-width:420px){
     .dist-grid{grid-template-columns:1fr}
-    .dist-value{font-size:42px}
     .brand h1{font-size:16px}
   }
   button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
@@ -147,7 +147,7 @@
 
   <header class="topbar">
     <div class="brand">
-      <span class="logo">🧭</span>
+      <span class="logo">🛰️</span>
       <div>
         <h1>Inventario GPS <span>COEX</span></h1>
       </div>
@@ -164,11 +164,12 @@
   </nav>
 
   <section id="gps" class="card gps">
+    <button class="btn-secondary" id="wakeLockBtn">🔆 Mantener pantalla encendida: OFF</button>
     <div class="info-row">
-      <div class="info-pill" id="compassInfo">🧭 <span id="compassNeedle" style="display:inline-block;transition:transform 0.2s ease;">↑</span> <span id="compassText">toca para activar</span></div>
+      <div class="info-pill" id="altTopPill">⛰️ Altitud: <span id="altTopValue">--</span></div>
       <div class="info-pill" id="tempInfo">🌡️ -- °C</div>
     </div>
-    <button class="btn-secondary" id="wakeLockBtn">🔆 Mantener pantalla encendida: OFF</button>
+    <div id="compassInfo" style="display:none"><span id="compassNeedle"></span><span id="compassText"></span></div>
   </section>
 
   <div id="distancias" class="section">
@@ -1009,6 +1010,7 @@
     utmNorthing: document.getElementById("utmNorthing"),
     latLon: document.getElementById("latLon"),
     altitudeValue: document.getElementById("altitudeValue"),
+    altTopValue: document.getElementById("altTopValue"),
     totalDistance: document.getElementById("totalDistance"),
     resetTotalBtn: document.getElementById("resetTotalBtn"),
     dist1ToggleBtn: document.getElementById("dist1ToggleBtn"),
@@ -1052,12 +1054,13 @@
     el.utmNorthing.textContent = Math.round(utm.northing) + " m";
     el.latLon.textContent = latitude.toFixed(6) + ", " + longitude.toFixed(6);
 
-    // Altitud (ubicada junto a las coordenadas UTM)
+    // Altitud (junto a las coordenadas UTM y también arriba, en lugar de la brújula)
     if (hasAltitude) {
       el.altitudeValue.textContent = Math.round(altitude) + " m";
     } else {
       el.altitudeValue.textContent = "sin dato";
     }
+    el.altTopValue.textContent = el.altitudeValue.textContent;
 
     // Precisión (ubicada junto a las coordenadas UTM)
     const signalPoor = accuracy != null && accuracy > MIN_ACCURACY_FOR_DISTANCE;

@@ -2,224 +2,257 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Inventario GPS COEX</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<title>Inventario GPS COEX · Nueva interfaz</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <style>
-  :root {
-    --bg: #0a0a0a;
-    --panel: #161616;
-    --panel2: #1e1e1e;
-    --accent: #00e676;
-    --accent-dim: #00c264;
-    --warn: #ff5252;
-    --text: #f5f5f5;
-    --text-dim: #9a9a9a;
-    --border: #2a2a2a;
+  :root{
+    --bg:#0b1220; --panel:#121c2e; --panel2:#1a2740; --line:#263753;
+    --text:#eef5ff; --dim:#9fb2ce; --green:#00e676; --green-d:#00b85d;
+    --yellow:#ffd600; --cyan:#40c4ff; --purple:#b388ff; --red:#ff5d6c;
+    --shadow:0 10px 30px rgba(0,0,0,.35); --r:18px;
   }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body {
-    margin: 0; padding: 0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-    -webkit-user-select: none; user-select: none;
-    overscroll-behavior: none;
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{scroll-behavior:smooth}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    -webkit-user-select:none;user-select:none;overscroll-behavior:none}
+  body{padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+  .app{max-width:540px;margin:0 auto;padding:calc(10px + env(safe-area-inset-top)) 12px 20px}
+
+  /* ---------- Cabecera ---------- */
+  .topbar{position:sticky;top:0;z-index:50;background:rgba(11,18,32,.92);
+    backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:var(--r);
+    padding:12px 14px;box-shadow:var(--shadow);margin-bottom:10px}
+  .brand{display:flex;align-items:center;justify-content:center;gap:10px;text-align:center}
+  .logo{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;
+    font-size:24px;background:linear-gradient(135deg,#00e676,#00b0ff);box-shadow:0 0 22px rgba(0,230,118,.25)}
+  .brand h1{font-size:18px;line-height:1.1;margin:0;font-weight:800;letter-spacing:.4px;text-transform:uppercase}
+  .brand h1 span{color:var(--yellow)}
+  .status{margin-top:10px;text-align:center;font-size:12px;font-weight:600;padding:8px 10px;
+    border-radius:10px;background:var(--panel2);color:var(--dim);border:1px solid var(--line)}
+  .status.ok{color:var(--green);border-color:rgba(0,230,118,.5);background:rgba(0,230,118,.08)}
+  .status.err{color:var(--red);border-color:rgba(255,93,108,.55);background:rgba(255,93,108,.08)}
+
+  /* ---------- Atajos ---------- */
+  .quicknav{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;margin-bottom:4px;scrollbar-width:none}
+  .quicknav::-webkit-scrollbar{display:none}
+  .quicknav a{flex:0 0 auto;text-decoration:none;color:var(--dim);background:var(--panel);
+    border:1px solid var(--line);padding:8px 13px;border-radius:999px;font-size:12px;font-weight:700}
+  .quicknav a:active{background:var(--panel2);color:var(--green)}
+
+  /* ---------- Estructura ---------- */
+  .section{margin-top:14px}
+  .section-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:0 4px 8px}
+  .section-head h2{margin:0;font-size:14px;text-transform:uppercase;letter-spacing:1.2px;color:var(--dim)}
+  .hint{font-size:10px;color:#6f86a8;text-transform:uppercase;letter-spacing:.8px}
+  .card{background:linear-gradient(180deg,var(--panel),#0f1829);border:1px solid var(--line);
+    border-radius:var(--r);padding:15px;margin-bottom:12px;box-shadow:var(--shadow)}
+  .card.gps{padding:12px}
+  .info-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .info-pill{flex:1 1 140px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+    padding:10px 12px;font-size:13px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums}
+  #compassInfo{cursor:pointer}
+  #compassNeedle{display:inline-block;transition:transform .2s ease;color:var(--green);font-size:16px}
+
+  /* ---------- Botones ---------- */
+  button{font-family:inherit;border:none;border-radius:13px;padding:14px 12px;font-size:15px;
+    font-weight:800;width:100%;cursor:pointer;-webkit-appearance:none;letter-spacing:.3px;
+    min-height:48px;transition:transform .08s ease,filter .15s ease,background .15s ease}
+  button:active{transform:scale(.985)}
+  .btn-primary{background:var(--green);color:#002d15}
+  .btn-primary:active{background:var(--green-d)}
+  .btn-primary.dist-active{background:var(--red);color:#2d0000}
+  .btn-secondary{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+  .btn-secondary:active{background:#22324f}
+  .btn-yellow{background:var(--yellow);color:#2d2400}
+  .btn-yellow.dist-active{background:var(--red);color:#2d0000}
+  .btn-yellow.dist-active:active{background:#d63b4a}
+  .btn-flash{border:2px solid var(--cyan)!important;box-shadow:0 0 0 3px rgba(64,196,255,.35)}
+  .btn-row{display:flex;gap:9px;margin-top:10px}
+  .btn-row button{flex:1}
+
+  /* ---------- Distancias ---------- */
+  .dist-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .dist-card{text-align:center;padding:16px 12px;position:relative;overflow:hidden}
+  .dist-card:before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:var(--cyan)}
+  .dist-card.d2:before{background:var(--yellow)}
+  .dist-title{font-size:13px;text-transform:uppercase;letter-spacing:.9px;color:var(--dim);
+    display:flex;align-items:center;justify-content:center;gap:6px}
+  .dist-value{font-size:clamp(32px,10vw,48px);font-weight:900;line-height:1.1;margin:12px 0 4px;
+    font-variant-numeric:tabular-nums;color:var(--cyan)}
+  .d2 .dist-value{color:var(--yellow)}
+  .pause-note{font-size:11px;color:var(--red);font-weight:700;margin-bottom:6px}
+  .badge{display:inline-block;font-size:10px;padding:3px 8px;border-radius:999px;
+    background:var(--panel2);color:var(--dim);letter-spacing:.3px}
+  .badge.live{background:rgba(0,230,118,.16);color:var(--green)}
+  .badge.live-purple{background:rgba(179,136,255,.16);color:var(--purple)}
+
+  /* ---------- Coordenadas ---------- */
+  .coord-title{font-size:15px;font-weight:800;margin:0 0 10px;color:var(--cyan);letter-spacing:.4px}
+  .utm-row{display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:9px 0;border-bottom:1px solid var(--line)}
+  .utm-row:last-of-type{border-bottom:none}
+  .utm-label{color:var(--dim);font-size:12px;text-transform:uppercase;letter-spacing:.6px}
+  .utm-value{font-weight:800;font-variant-numeric:tabular-nums;font-size:18px;text-align:right}
+  .precision-value{font-weight:800;font-variant-numeric:tabular-nums;color:var(--cyan);font-size:15px}
+  .precision-value.bad{color:#ffab40}
+
+  /* ---------- Puntos ---------- */
+  input[type="text"],input[type="number"]{width:100%;background:var(--panel2);border:1px solid var(--line);
+    color:var(--text);font-size:16px;padding:13px 14px;border-radius:12px;margin-bottom:10px;
+    font-variant-numeric:tabular-nums;text-align:center;min-height:48px}
+  input:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px rgba(0,230,118,.12)}
+  input::placeholder{color:#6f86a8}
+  .point-item{background:var(--panel2);border:1px solid var(--line);border-radius:14px;
+    padding:11px 12px;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+  .point-info{flex:1;min-width:0}
+  .point-label{font-weight:800;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .point-meta{font-size:10px;color:var(--dim);margin-top:3px;font-variant-numeric:tabular-nums}
+  .point-distance{font-weight:900;font-size:15px;color:var(--cyan);white-space:nowrap}
+  .point-gmaps{color:var(--cyan);font-size:18px;text-decoration:none;padding:4px}
+  .point-delete{background:none;color:var(--red);font-size:20px;padding:4px 6px;width:auto;min-height:0;line-height:1}
+  .points-empty{text-align:center;color:var(--dim);font-size:13px;padding:14px 0}
+  .area-result{display:none;text-align:center;font-size:14px;font-weight:800;color:var(--cyan);
+    margin-top:10px;padding:12px;background:rgba(64,196,255,.08);border:1px solid rgba(64,196,255,.35);border-radius:12px}
+
+  /* ---------- Podómetro ---------- */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+  .stat-box{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:12px 8px;text-align:center}
+  .label{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.9px;margin-bottom:5px}
+  .value{font-size:22px;font-weight:900;color:var(--purple);font-variant-numeric:tabular-nums}
+
+  /* ---------- Mapa ---------- */
+  .map-modal{display:none;position:fixed;inset:0;background:var(--bg);z-index:1000;flex-direction:column}
+  .map-modal.open{display:flex}
+  .map-modal-header{display:flex;gap:8px;flex-wrap:wrap;padding:10px 12px;background:var(--panel);
+    border-bottom:1px solid var(--line);padding-top:calc(10px + env(safe-area-inset-top))}
+  .map-modal-header button{width:auto;flex:1;padding:11px 8px;font-size:13px;min-height:44px}
+  #mapContainer{flex:1}
+  .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--panel);color:var(--text)}
+  .leaflet-container{background:#101a2b}
+  .app-author{text-align:center;font-size:10px;color:#4d6384;letter-spacing:.6px;padding-top:6px}
+
+  @media (max-width:420px){
+    .dist-grid{grid-template-columns:1fr}
+    .dist-value{font-size:42px}
+    .brand h1{font-size:16px}
   }
-  .app { max-width: 480px; margin: 0 auto; padding: 14px 14px 30px; }
-
-  h1 { font-size: 24px; text-align: center; margin: 6px 0 14px; letter-spacing: 1px; color: #ffd600; font-weight: 800; text-transform: uppercase; }
-
-  .status {
-    text-align: center; font-size: 12px; padding: 6px 10px; border-radius: 8px;
-    margin-bottom: 12px; background: var(--panel); color: var(--text-dim); border: 1px solid var(--border);
-  }
-  .status.ok { color: var(--accent); border-color: var(--accent-dim); }
-  .status.err { color: var(--warn); border-color: var(--warn); }
-
-  .info-bar {
-    display: flex; justify-content: center; gap: 22px;
-    font-size: 13px; color: var(--text-dim); margin-bottom: 10px;
-    font-variant-numeric: tabular-nums;
-  }
-  .info-bar span { cursor: pointer; }
-
-  .card {
-    background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
-    padding: 16px; margin-bottom: 12px;
-  }
-
-  .speed-card { text-align: center; padding: 22px 16px; }
-  .precision-value { font-weight: 700; font-variant-numeric: tabular-nums; font-size: 14px; color: #40c4ff; }
-  .precision-value.bad { color: #ffab40; }
-
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .stat-box { background: var(--panel2); border-radius: 12px; padding: 10px 8px; text-align: center; }
-  .label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
-  .value { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
-  .value.small { font-size: 15px; }
-  .accent-purple { color: #b388ff; }
-
-  .utm-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); }
-  .utm-row:last-child { border-bottom: none; }
-  .utm-label { color: var(--text-dim); font-size: 13px; }
-  .utm-value { font-weight: 700; font-variant-numeric: tabular-nums; font-size: 19px; }
-
-  button {
-    font-family: inherit; border: none; border-radius: 12px; padding: 16px;
-    font-size: 16px; font-weight: 700; width: 100%; cursor: pointer;
-    -webkit-appearance: none; letter-spacing: 0.5px;
-  }
-  .btn-primary { background: var(--accent); color: #002d15; }
-  .btn-primary:active { background: var(--accent-dim); }
-  .btn-primary.dist-active { background: var(--warn); color: #2d0000; }
-  .btn-primary.dist-active:active { background: #d33; }
-  .app-author { position: fixed; bottom: 4px; left: 0; right: 0; text-align: center; font-size: 9px; color: rgba(255,255,255,0.12); pointer-events: none; user-select: none; letter-spacing: 0.3px; z-index: 1; }
-  .btn-secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
-  .btn-secondary:active { background: #262626; }
-  .btn-secondary.btn-flash { border: 2px solid #00e5ff; box-shadow: 0 0 0 2px rgba(0,229,255,0.35); transition: border-color 0.15s ease, box-shadow 0.15s ease; }
-  .btn-danger { background: var(--warn); color: #2d0000; }
-  .btn-row { display: flex; gap: 10px; margin-top: 10px; }
-  .btn-row button { flex: 1; }
-
-  input[type="number"], input[type="text"] {
-    width: 100%; background: var(--panel2); border: 1px solid var(--border); color: var(--text);
-    font-size: 18px; padding: 14px; border-radius: 10px; font-variant-numeric: tabular-nums;
-    margin-bottom: 10px; text-align: center;
-  }
-  input[type="number"]:focus, input[type="text"]:focus { outline: none; border-color: var(--accent); }
-
-  .progress-wrap { background: var(--panel2); border-radius: 10px; height: 14px; overflow: hidden; margin: 10px 0; }
-  .progress-bar { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s ease; }
-
-  .remaining-value { text-align: center; font-size: 40px; font-weight: 800; font-variant-numeric: tabular-nums; margin: 8px 0; }
-  .remaining-value.done { color: var(--accent); }
-
-  .point-item {
-    background: var(--panel2); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px;
-    display: flex; justify-content: space-between; align-items: center; gap: 8px;
-  }
-  .point-info { flex: 1; min-width: 0; }
-  .point-label { font-weight: 700; font-size: 14px; }
-  .point-meta { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
-  .point-distance { font-weight: 800; font-size: 16px; color: #40c4ff; white-space: nowrap; }
-  .point-delete {
-    background: none; border: none; color: var(--warn); font-size: 20px; padding: 4px 8px;
-    width: auto; cursor: pointer; line-height: 1;
-  }
-  .point-gmaps {
-    color: #40c4ff; font-size: 19px; padding: 4px 6px; text-decoration: none;
-    line-height: 1; display: inline-block;
-  }
-  .points-empty { text-align: center; color: var(--text-dim); font-size: 13px; padding: 10px 0; }
-
-  .section-title { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin: 4px 0 10px; }
-
-  .badge { display: inline-block; font-size: 11px; padding: 3px 8px; border-radius: 20px; background: var(--panel2); color: var(--text-dim); margin-left: 6px; }
-  .badge.live { background: rgba(0,230,118,0.15); color: var(--accent); }
-  .badge.live-purple { background: rgba(179,136,255,0.15); color: #b388ff; }
-
-  /* ---------- Ventana de mapa a pantalla completa ---------- */
-  .map-modal {
-    display: none; position: fixed; inset: 0; background: var(--bg); z-index: 1000;
-    flex-direction: column;
-  }
-  .map-modal.open { display: flex; }
-  .map-modal-header {
-    display: flex; justify-content: space-between; gap: 6px; flex-wrap: wrap;
-    padding: 10px 12px; background: var(--panel); border-bottom: 1px solid var(--border);
-  }
-  .map-modal-header button { width: auto; padding: 10px 10px; font-size: 13px; }
-  #mapContainer { flex: 1; }
-  .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--panel); color: var(--text); }
-  .leaflet-container { background: #1a1a1a; }
+  button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
 </style>
 </head>
 <body>
 <div class="app">
-  <h1>Inventario GPS COEX</h1>
-  <div id="status" class="status">Esperando señal GPS…</div>
-  <div class="info-bar">
-    <span id="compassInfo">🧭 <span id="compassNeedle" style="display:inline-block; transition: transform 0.2s ease;">↑</span> <span id="compassText">toca para activar</span></span>
-    <span id="tempInfo">🌡️ -- °C</span>
-  </div>
-  <button class="btn-secondary" id="wakeLockBtn" style="margin-bottom:12px;">🔆 Mantener pantalla encendida: OFF</button>
 
-  <div class="card speed-card">
-    <div class="section-title" style="text-align:center; font-size:17px;">📏 Distancia 1 <span class="badge" id="dist1Badge">inactivo</span></div>
-    <div class="value" id="totalDistance" style="font-size:64px; font-weight:800; color:#40c4ff; text-align:center;">0 m</div>
-    <div id="dist1PauseNote" style="display:none; text-align:center; font-size:12px; color:var(--warn); margin-top:-4px; margin-bottom:6px;">⚠ En pausa: señal GPS poco precisa</div>
-    <div class="btn-row">
-      <button class="btn-primary" id="dist1ToggleBtn">Activar</button>
-      <button class="btn-secondary" id="resetTotalBtn">Reiniciar</button>
-    </div>
-  </div>
-
-  <div class="card speed-card">
-    <div class="section-title" style="text-align:center; font-size:17px;">📏 Distancia 2 <span class="badge" id="dist2Badge">inactivo</span></div>
-    <div class="value" id="totalDistance2" style="font-size:64px; font-weight:800; color:#ffd600; text-align:center;">0 m</div>
-    <div id="dist2PauseNote" style="display:none; text-align:center; font-size:12px; color:var(--warn); margin-top:-4px; margin-bottom:6px;">⚠ En pausa: señal GPS poco precisa</div>
-    <div class="btn-row">
-      <button class="btn-primary" id="dist2ToggleBtn">Activar</button>
-      <button class="btn-secondary" id="resetTotal2Btn">Reiniciar</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="section-title" style="font-size:17px;">🛰️ Coordenadas UTM</div>
-    <div class="utm-row"><span class="utm-label">Zona</span><span class="utm-value" id="utmZone">--</span></div>
-    <div class="utm-row"><span class="utm-label">Easting (X)</span><span class="utm-value" id="utmEasting">--</span></div>
-    <div class="utm-row"><span class="utm-label">Northing (Y)</span><span class="utm-value" id="utmNorthing">--</span></div>
-    <div class="utm-row"><span class="utm-label">Lat / Lon</span><span class="utm-value" id="latLon" style="font-size:16px;">--</span></div>
-    <div class="utm-row"><span class="utm-label">Altitud</span><span class="utm-value" id="altitudeValue" style="font-size:16px;">--</span></div>
-    <div class="utm-row"><span class="utm-label">Precisión</span><span class="precision-value" id="accuracyTag">--</span></div>
-    <div class="btn-row" style="margin-top:10px;">
-      <button class="btn-secondary" id="copyCoordsBtn">📋 Copiar coordenadas</button>
-    </div>
-    <div class="btn-row">
-      <button class="btn-primary" id="gmapsCurrentBtn" style="background:#00e676; color:#002d15;">🌍 Abrir en Google Maps</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="section-title" style="font-size:17px;">📌 Puntos guardados</div>
-    <input type="text" id="pointLabelInput" placeholder="Etiqueta (opcional)">
-    <div class="btn-row">
-      <button class="btn-primary" id="markPointBtn">Marcar posición actual</button>
-      <button class="btn-secondary" id="exportPointsBtn">Exportar CSV</button>
-    </div>
-    <div class="btn-row">
-      <button class="btn-secondary" id="exportKmlBtn">Exportar KML</button>
-      <button class="btn-secondary" id="exportGpxBtn">Exportar GPX</button>
-    </div>
-    <div class="btn-row">
-      <button class="btn-secondary" id="openMapBtn">🗺️ Ver mapa</button>
-      <button class="btn-secondary" id="calcAreaBtn">📐 Calcular área</button>
-    </div>
-    <div id="areaResult" style="display:none; text-align:center; font-size:14px; font-weight:700; color:#40c4ff; margin-top:10px; padding:10px; background:var(--panel2); border-radius:10px;"></div>
-    <input type="text" id="pointSearchInput" placeholder="🔍 Buscar por etiqueta…" style="margin-top:10px;">
-    <div id="pointsList" style="margin-top:10px;"></div>
-  </div>
-
-  <div class="card">
-    <div class="section-title">🚶 Podómetro <span class="badge" id="pedoBadge">inactivo</span></div>
-    <div class="grid2" style="margin-bottom:12px;">
-      <div class="stat-box">
-        <div class="label">Pasos</div>
-        <div class="value accent-purple" id="pedoSteps">0</div>
-      </div>
-      <div class="stat-box">
-        <div class="label">Distancia</div>
-        <div class="value accent-purple" id="pedoDistance">0 m</div>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">🧭</span>
+      <div>
+        <h1>Inventario GPS <span>COEX</span></h1>
       </div>
     </div>
-    <div class="label">Longitud de zancada (m)</div>
-    <input type="number" id="strideLength" value="1" step="0.01" min="0.3" max="1.5" inputmode="decimal">
-    <div class="btn-row">
-      <button class="btn-primary" id="pedoToggleBtn">Activar podómetro</button>
-      <button class="btn-secondary" id="pedoResetBtn">Reiniciar</button>
+    <div id="status" class="status">Esperando señal GPS…</div>
+  </header>
+
+  <nav class="quicknav" aria-label="Atajos de secciones">
+    <a href="#gps">GPS</a>
+    <a href="#distancias">Distancias</a>
+    <a href="#coords">Coordenadas</a>
+    <a href="#puntos">Puntos</a>
+    <a href="#podo">Podómetro</a>
+  </nav>
+
+  <section id="gps" class="card gps">
+    <div class="info-row">
+      <div class="info-pill" id="compassInfo">🧭 <span id="compassNeedle" style="display:inline-block;transition:transform 0.2s ease;">↑</span> <span id="compassText">toca para activar</span></div>
+      <div class="info-pill" id="tempInfo">🌡️ -- °C</div>
+    </div>
+    <button class="btn-secondary" id="wakeLockBtn">🔆 Mantener pantalla encendida: OFF</button>
+  </section>
+
+  <div id="distancias" class="section">
+    <div class="section-head"><h2>📏 Distancias</h2><span class="hint">Independientes</span></div>
+    <div class="dist-grid">
+      <article class="card dist-card d1">
+        <div class="dist-title">Distancia 1 <span class="badge" id="dist1Badge">inactivo</span></div>
+        <div class="dist-value" id="totalDistance">0 m</div>
+        <div class="pause-note" id="dist1PauseNote" style="display:none">⚠ En pausa: señal GPS poco precisa</div>
+        <div class="btn-row">
+          <button class="btn-primary" id="dist1ToggleBtn">Activar</button>
+          <button class="btn-secondary" id="resetTotalBtn">Reiniciar</button>
+        </div>
+      </article>
+      <article class="card dist-card d2">
+        <div class="dist-title">Distancia 2 <span class="badge" id="dist2Badge">inactivo</span></div>
+        <div class="dist-value" id="totalDistance2">0 m</div>
+        <div class="pause-note" id="dist2PauseNote" style="display:none">⚠ En pausa: señal GPS poco precisa</div>
+        <div class="btn-row">
+          <button class="btn-yellow" id="dist2ToggleBtn">Activar</button>
+          <button class="btn-secondary" id="resetTotal2Btn">Reiniciar</button>
+        </div>
+      </article>
     </div>
   </div>
+
+  <section id="coords" class="section">
+    <div class="section-head"><h2>🛰️ Coordenadas</h2><span class="hint">WGS84 + UTM</span></div>
+    <div class="card">
+      <p class="coord-title">Posición actual</p>
+      <div class="utm-row"><span class="utm-label">Zona</span><span class="utm-value" id="utmZone">--</span></div>
+      <div class="utm-row"><span class="utm-label">Easting (X)</span><span class="utm-value" id="utmEasting">--</span></div>
+      <div class="utm-row"><span class="utm-label">Northing (Y)</span><span class="utm-value" id="utmNorthing">--</span></div>
+      <div class="utm-row"><span class="utm-label">Lat / Lon</span><span class="utm-value" id="latLon" style="font-size:15px;">--</span></div>
+      <div class="utm-row"><span class="utm-label">Altitud</span><span class="utm-value" id="altitudeValue" style="font-size:15px;">--</span></div>
+      <div class="utm-row"><span class="utm-label">Precisión</span><span class="precision-value" id="accuracyTag">--</span></div>
+      <div class="btn-row">
+        <button class="btn-secondary" id="copyCoordsBtn">📋 Copiar coordenadas</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn-primary" id="gmapsCurrentBtn">🌍 Abrir en Google Maps</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="puntos" class="section">
+    <div class="section-head"><h2>📌 Puntos guardados</h2><span class="hint">CSV · KML · GPX</span></div>
+    <div class="card">
+      <input type="text" id="pointLabelInput" placeholder="Etiqueta (opcional)">
+      <div class="btn-row">
+        <button class="btn-primary" id="markPointBtn">Marcar posición actual</button>
+        <button class="btn-secondary" id="exportPointsBtn">Exportar CSV</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn-secondary" id="exportKmlBtn">Exportar KML</button>
+        <button class="btn-secondary" id="exportGpxBtn">Exportar GPX</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn-secondary" id="openMapBtn">🗺️ Ver mapa</button>
+        <button class="btn-secondary" id="calcAreaBtn">📐 Calcular área</button>
+      </div>
+      <div class="area-result" id="areaResult"></div>
+      <input type="text" id="pointSearchInput" placeholder="🔍 Buscar por etiqueta…" style="margin-top:10px;">
+      <div id="pointsList" style="margin-top:4px;"></div>
+    </div>
+  </section>
+
+  <section id="podo" class="section">
+    <div class="section-head"><h2>🚶 Podómetro <span class="badge" id="pedoBadge">inactivo</span></h2><span class="hint">Acelerómetro</span></div>
+    <div class="card">
+      <div class="grid2">
+        <div class="stat-box"><div class="label">Pasos</div><div class="value" id="pedoSteps">0</div></div>
+        <div class="stat-box"><div class="label">Distancia</div><div class="value" id="pedoDistance">0 m</div></div>
+      </div>
+      <div class="label" style="text-align:center;">Longitud de zancada (m)</div>
+      <input type="number" id="strideLength" value="1" step="0.01" min="0.3" max="1.5" inputmode="decimal">
+      <div class="btn-row">
+        <button class="btn-primary" id="pedoToggleBtn">Activar podómetro</button>
+        <button class="btn-secondary" id="pedoResetBtn">Reiniciar</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="app-author">© Vaguimel</div>
 </div>
 
 <div class="map-modal" id="mapModal">
@@ -230,7 +263,6 @@
   </div>
   <div id="mapContainer"></div>
 </div>
-<div class="app-author">© Vaguimel</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
@@ -249,6 +281,9 @@
 
   const MIN_ACCURACY_FOR_DISTANCE = 20; // metros; por encima de esto no sumamos a la distancia (ajustado para precisión de kilometraje en carretera)
   const MIN_MOVEMENT_M = 5; // umbral mínimo de desplazamiento real; por debajo se considera ruido del GPS en parado
+  const STOPPED_SPEED_MPS = 0.5;   // velocidad GPS considerada "parado" (~1,8 km/h)
+  const ZERO_SPEED_FREEZE_MS = 1000; // con velocidad 0, los contadores no avanzan durante 1 segundo
+  let zeroSpeedUntil = 0;          // ms hasta los que se mantiene el bloqueo por velocidad 0
 
   // ---------- Temperatura (requiere internet, a diferencia del resto de la app) ----------
   let lastTempFetchTime = 0;
@@ -1033,6 +1068,15 @@
 
     const now = pos.timestamp || Date.now();
 
+    // Bloqueo por velocidad cero: cuando el GPS informa de que el móvil está
+    // parado, los contadores dejan de avanzar durante al menos 1 segundo.
+    // Mientras siga parado, el ancla se va reubicando sin sumar distancia,
+    // para que al volver a andar no se contabilice de golpe el salto acumulado.
+    const speed = pos.coords && pos.coords.speed;
+    const stopped = typeof speed === "number" && isFinite(speed) && speed <= STOPPED_SPEED_MPS;
+    if (stopped) zeroSpeedUntil = Date.now() + ZERO_SPEED_FREEZE_MS;
+    const frozenByZeroSpeed = Date.now() < zeroSpeedUntil;
+
     // Distancia total: se compara contra un "punto ancla" en vez de la última
     // lectura cruda. Solo se suma cuando el desplazamiento supera el margen
     // de error del GPS (su precisión reportada) — así el ruido/drift de los
@@ -1043,19 +1087,31 @@
     if (distanceActive) {
       const upd1 = updateAnchoredDistance(distanceAnchor, totalDistanceM, latitude, longitude, accuracy);
       distanceAnchor = upd1.anchor;
-      totalDistanceM = upd1.total;
-      el.totalDistance.textContent = formatMetersDist(totalDistanceM);
+      if (frozenByZeroSpeed) {
+        el.dist1PauseNote.textContent = "⚠ En pausa: velocidad 0 (1 s)";
+        el.dist1PauseNote.style.display = "block";
+      } else {
+        el.dist1PauseNote.style.display = "none";
+        totalDistanceM = upd1.total;
+        el.totalDistance.textContent = formatMetersDist(totalDistanceM);
+      }
     }
 
     // Distancia Viajada 2 (contador 2, totalmente independiente) — solo acumula mientras está activado
     if (distanceActive2) {
       const upd2 = updateAnchoredDistance(distanceAnchor2, totalDistanceM2, latitude, longitude, accuracy);
       distanceAnchor2 = upd2.anchor;
-      totalDistanceM2 = upd2.total;
-      el.totalDistance2.textContent = formatMetersDist(totalDistanceM2);
+      if (frozenByZeroSpeed) {
+        el.dist2PauseNote.textContent = "⚠ En pausa: velocidad 0 (1 s)";
+        el.dist2PauseNote.style.display = "block";
+      } else {
+        el.dist2PauseNote.style.display = "none";
+        totalDistanceM2 = upd2.total;
+        el.totalDistance2.textContent = formatMetersDist(totalDistanceM2);
+      }
     }
 
-    lastPos = { lat: latitude, lon: longitude, alt: hasAltitude ? altitude : null, accuracy: accuracy, t: now };
+    lastPos = { lat: latitude, lon: longitude, alt: hasAltitude ? altitude : null, accuracy: accuracy, speed: speed, t: now };
     setStatus("Señal GPS activa", "ok");
     scheduleSave();
 
@@ -1210,6 +1266,7 @@
     startCompass();
   }
 })();
+
 </script>
 </body>
 </html>
